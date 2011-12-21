@@ -80,7 +80,7 @@ void Si4735::begin(char mode){
 			return;
 	}
 	sendCommand(command, 3);
-	delay(200);
+	delay(110); //WTF? don't just wait and go duh...waut for the response!
 
 	//Set the volume to the current value.
 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
@@ -157,7 +157,8 @@ bool Si4735::tuneFrequency(int frequency){
 	//set frequency command.
 	char highByte = frequency >> 8;
 	char lowByte = frequency & 0x00FF;
-	
+		bool CTS;
+		byte status;
 	//Depending on the current mode, set the new frequency.
 	switch(_mode){
 		// page 21 of AN332
@@ -176,7 +177,8 @@ bool Si4735::tuneFrequency(int frequency){
 			break;
 	}
 	sendCommand(command, 4);
-	delay(100);
+	//getResponse(response);
+//	delay(50);
 	
 	return true;
 }
@@ -242,13 +244,13 @@ bool Si4735::seekUp(void){
 	//Use the current mode selection to seek up.
 	switch(_mode){
 		case FM:
-			sprintf(command, "%c%c", 0x21, 0x0C);
+			sprintf(command, "%c%c", 0x21, 0x08); // 0x0c if we want it to loop. we dont
 			sendCommand(command, 2);
 			break;
 		case AM:
 		case SW:
 		case LW:
-			sprintf(command, "%c%c%c%c%c%c", 0x41, 0x0C, 0x00, 0x00, 0x00, 0x00);
+			sprintf(command, "%c%c%c%c%c%c", 0x41, 0x08, 0x00, 0x00, 0x00, 0x00); //0x0c same as above
 			sendCommand(command, 6);
 			break;
 		default:
@@ -312,21 +314,21 @@ void Si4735::readRDS(void){
 		pi = MAKEINT(response[8], response[9]);
 	}
 	
-	/*
-	Serial.println("================================");
-	Serial.print("Type:|");
-	Serial.print(type, DEC);
-	Serial.println("|");
-	Serial.print("Version:|");
-	Serial.print(version, BIN);
-	Serial.println("|");
-	Serial.print("TP:|");
-	Serial.print(tp, BIN);
-	Serial.println("|");
-	Serial.print("PI:|");
-	Serial.print(pi, BIN);
-	Serial.println("|");
-	*/
+	// /*
+//	Serial.println("================================");
+	Serial.print("Program Type:|");
+	Serial.println(type, DEC);
+//	Serial.println("|");
+//	Serial.print("Version:|");
+//	Serial.print(version, BIN);
+//	Serial.println("|");
+//	Serial.print("traffic progam:|");
+//	Serial.print(tp, BIN);
+//	Serial.println("|");
+//	Serial.print("Program Identifer:|");
+//	Serial.print(pi, BIN);
+//	Serial.println("|");
+	// */
 	
 	// Groups 0A & 0B
 	// Basic tuning and switching information only
@@ -360,8 +362,8 @@ void Si4735::readRDS(void){
 		Serial.print("_ps:|");
 		Serial.print(_ps);
 		Serial.println("|");
-		Serial.print("_af:|");
-		Serial.print(_af, DEC);
+//		Serial.print("_af:|");
+//		Serial.print(_af, DEC);
 		Serial.println("|");
 		*/
 	}
