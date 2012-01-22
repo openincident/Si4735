@@ -13,7 +13,8 @@
 #ifndef Si4735_h
 #define Si4735_h
 
-#include "WProgram.h"
+//#include "WProgram.h"
+#include "Arduino.h"
 #include "SPI.h"
 
 //Assign the radio pin numbers

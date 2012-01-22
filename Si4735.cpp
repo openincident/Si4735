@@ -13,7 +13,7 @@
 */
 
 #include "Si4735.h"
-#include "WProgram.h"
+#include "Arduino.h"
 #include "string.h"
 
 //This is just a constructor.
