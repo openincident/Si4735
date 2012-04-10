@@ -36,6 +36,7 @@
 */
 //Add the Si4735 Library to the sketch
 #include <Si4735.h>
+#include <SPI.h>
 
 //Create an instance of the Si4735 named radio.
 Si4735 radio;
