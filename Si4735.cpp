@@ -7,6 +7,9 @@
  * Released under the 'Buy Me a Beer' license
  * (If we ever meet, you buy me a beer)
  *
+ * Utterly mutliated by Dan Zubey <dzubey@openincident.com>
+ * Bugs are now all mine.
+ *
  * See the header file for better function documentation.
  *
  * See the example sketches to learn how to use the library in your code.
@@ -15,6 +18,8 @@
 #include "Si4735.h"
 #include "Arduino.h"
 #include "string.h"
+#include <Debug.h>  // dzubey
+#define DEBUG
 
 //This is just a constructor.
 Si4735::Si4735(){
@@ -42,7 +47,7 @@ void Si4735::begin(char mode){
 	pinMode(INT_PIN, OUTPUT);  //Int_Pin (GPO2) must be driven high after reset to select SPI
 
 	//Sequence the power to the Si4735
-	digitalWrite(RADIO_RESET_PIN, LOW);  
+	digitalWrite(RADIO_RESET_PIN, LOW);
 	digitalWrite(POWER_PIN, LOW);
 
 	//Configure the device for SPI communication
@@ -58,14 +63,13 @@ void Si4735::begin(char mode){
 	pinMode(DATAOUT, OUTPUT);
 	pinMode(DATAIN, INPUT);
 	pinMode(SPICLOCK,OUTPUT);
-	pinMode(SS,OUTPUT); 
-	pinMode(INT_PIN, INPUT); 
-	digitalWrite(SS, HIGH);	
+	pinMode(SS,OUTPUT);
+	pinMode(INT_PIN, INPUT);
+	digitalWrite(SS, HIGH);
 
 	//Configure the SPI hardware
 	SPIClass::begin();
 	SPIClass::setClockDivider(SPI_CLOCK_DIV32);
-	
 	//Send the POWER_UP command
 	switch(_mode){
 		case FM:
@@ -76,6 +80,9 @@ void Si4735::begin(char mode){
 		case LW:
 			sprintf(command, "%c%c%c", 0x01, 0x51, 0x05);
 			break;
+  		case WB:
+  		        sprintf(command, "%c%c%c", 0x01, 0x53, 0x05);
+  		        break;
 		default:
 			return;
 	}
@@ -83,14 +90,14 @@ void Si4735::begin(char mode){
 	delay(110); //WTF? don't just wait and go duh...waut for the response!
 
 	//Set the volume to the current value.
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
-	sendCommand(command, 6);
-	delay(10);
-
-	//Disable Mute
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
-	sendCommand(command, 6);
-	delay(1);
+// 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
+// 	sendCommand(command, 6);
+// 	delay(10);
+//
+// 	//Disable Mute
+// 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
+// 	sendCommand(command, 6);
+// 	delay(10);
 
 	//Enable RDS
 //	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0x00, 0x01);
@@ -106,7 +113,7 @@ void Si4735::begin(char mode){
 			delay(1);
 			//Set the upper band limit for Short Wave Radio to 23000kHz
 			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x01, 0x59, 0xD8);
-			sendCommand(command, 6);			
+			sendCommand(command, 6);
 			delay(1);
 			break;
 		case LW:
@@ -115,12 +122,12 @@ void Si4735::begin(char mode){
 			sendCommand(command, 6);
 			//Set the upper band limit for Long Wave Radio to 279 kHz
 			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x01, 0x01, 0x17);
-			sendCommand(command, 6);			
+			sendCommand(command, 6);
 			break;
 		default:
 			break;
 	}
-	
+
 }
 
 void Si4735::sendCommand(char * myCommand){
@@ -132,7 +139,7 @@ void Si4735::sendCommand(char * myCommand){
 		else tempValue = *myCommand - '0';
 		command[index] = tempValue * 16;
 		*myCommand++;
-		
+
 		if(toupper(*myCommand) > '9')tempValue = toupper(*myCommand)-'A'+10;
 		else tempValue = *myCommand - '0';
 		command[index++] += tempValue;
@@ -151,8 +158,10 @@ void Si4735::sendCommand(char * myCommand){
 *			False if tune was unsuccessful
 */
 bool Si4735::tuneFrequency(int frequency){
+		char response [16];
+
 	clearRDS();
-	
+
 	//Split the desired frequency into two character for use in the
 	//set frequency command.
 	char highByte = frequency >> 8;
@@ -173,24 +182,28 @@ bool Si4735::tuneFrequency(int frequency){
 		case SW:
 			sprintf(command, "%c%c%c%c%c%c", 0x40, 0x00, highByte, lowByte, 0x00, 0xff);
 			break;
+		case WB:
+			sprintf(command, "%c%c%c%c", 0x50, 0x00, highByte, lowByte);
+			break;
 		default:
 			break;
 	}
+	DEBUG_PRINT(command);
 	sendCommand(command, 4);
-	//getResponse(response);
-//	delay(50);
-	
+	getResponse(response);
+	delay(50);
+
 	return true;
 }
 
 int Si4735::getFrequency(bool &valid){
 	char response [16];
-	int frequency;	
+	int frequency;
 	byte upper_byte;
 	byte lower_byte;
 
 	switch(_mode){
-		case FM:			
+		case FM:
 			//The FM_TUNE_STATUS command
 			sprintf(command, "%c%c", 0x22, 0x00);
 			break;
@@ -198,17 +211,17 @@ int Si4735::getFrequency(bool &valid){
 		case SW:
 		case LW:
 			//The AM_TUNE_STATUS command
-			sprintf(command, "%c%c", 0x42, 0x00);			
+			sprintf(command, "%c%c", 0x42, 0x00);
 			break;
 		default:
 			break;
-	}	
-	
+	}
+
 	//Send the command
 	sendCommand(command, 2);
 
-	//Now read the response	
-	getResponse(response);	
+	//Now read the response
+	getResponse(response);
 
 	//Convert the bytes of the response to a frequency value
 	//NOTE: the data type "char" is an 8-bit signed element
@@ -232,7 +245,7 @@ int Si4735::getFrequency(bool &valid){
 	//This is useful for us since we can determine if we are still seeking;
 	//if we are in the middle of seeking, we will set "valid" LOW to indicate
 	//that the frequency that was returned is not the final frequency and that
-	//we must re-execute getFrequency()	
+	//we must re-execute getFrequency()
 	valid=(response[0]&1)==1;
 
 	return frequency;
@@ -240,7 +253,7 @@ int Si4735::getFrequency(bool &valid){
 
 bool Si4735::seekUp(void){
 	clearRDS();
-	
+
 	//Use the current mode selection to seek up.
 	switch(_mode){
 		case FM:
@@ -262,7 +275,7 @@ bool Si4735::seekUp(void){
 
 bool Si4735::seekDown(void){
 	clearRDS();
-	
+
 	//Use the current mode selection to seek down.
 	switch(_mode){
 		case FM:
@@ -285,13 +298,13 @@ bool Si4735::seekDown(void){
 void Si4735::readRDS(void){
 	char status;
 	char response [16];
-	
+
 	sprintf(command, "%c%c", 0x24, 0x00);
 	sendCommand(command, 2);
 
-	//Now read the response	
+	//Now read the response
 	getResponse(response);
-	
+
 	//response[4] = RDSA high BLOCK1
 	//response[5] = RDSA low
 	//response[6] = RDSB high BLOCK2
@@ -304,7 +317,7 @@ void Si4735::readRDS(void){
 	bool version;
 	bool tp;
 	int pi;
-	
+
 	type = (response[6]>>4) & 0xF;
 	version = bitRead(response[6], 4);
 	tp = bitRead(response[6], 5);
@@ -313,11 +326,11 @@ void Si4735::readRDS(void){
 	} else {
 		pi = MAKEINT(response[8], response[9]);
 	}
-	
+
 	// /*
 //	Serial.println("================================");
-	Serial.print("Program Type:|");
-	Serial.println(type, DEC);
+//	Serial.print("Program Type:|");
+//	Serial.println(type, DEC);
 //	Serial.println("|");
 //	Serial.print("Version:|");
 //	Serial.print(version, BIN);
@@ -329,7 +342,7 @@ void Si4735::readRDS(void){
 //	Serial.print(pi, BIN);
 //	Serial.println("|");
 	// */
-	
+
 	// Groups 0A & 0B
 	// Basic tuning and switching information only
 	if (type == 0) {
@@ -337,7 +350,7 @@ void Si4735::readRDS(void){
 		bool ms = bitRead(response[7], 3);
 		byte addr = response[7] & 3;
 		bool diInfo = bitRead(response[7], 2);
-		
+
 		// Groups 0A & 0B: to extract PS segment we need blocks 1 and 3
 		if (addr >= 0 && addr<= 3) {
 			if (response[10] != '\0')
@@ -345,7 +358,7 @@ void Si4735::readRDS(void){
 			if (response[11] != '\0')
 				_ps[addr*2+1] = response[11];
 		}
-		
+
 		/*
 		Serial.print("TA:|");
 		Serial.print(ta, BIN);
@@ -372,7 +385,7 @@ void Si4735::readRDS(void){
 		// Get their address
 		int addressRT = response[7] & B1111; // Get rightmost 4 bits
 		bool ab = bitRead(response[7], 4);
-		
+
 		if (version == 0) {
 			if (addressRT >= 0 && addressRT <= 15) {
 				if (response[8] != '\0')
@@ -380,7 +393,7 @@ void Si4735::readRDS(void){
 				if (response[9] != '\0')
 					_disp[addressRT*4+1] = response[9];
 				if (response[10] != '\0')
-					_disp[addressRT*4+2] = response[10]; 
+					_disp[addressRT*4+2] = response[10];
 				if (response[11] != '\0')
 				_disp[addressRT*4+3] = response[11];
 			}
@@ -399,7 +412,7 @@ void Si4735::readRDS(void){
 		_ab = ab;
 		//Serial.println(_disp);
 	}
-	
+
 	delay(40);
 }
 
@@ -415,7 +428,7 @@ void Si4735::volumeUp(void){
 		//Set the volume to the current value.
 		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
 		sendCommand(command, 6);
-		delay(10);		
+		delay(10);
 	}
 }
 
@@ -426,7 +439,7 @@ void Si4735::volumeDown(void){
 		//Set the volume to the current value.
 		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
 		sendCommand(command, 6);
-		delay(10);		
+		delay(10);
 	}
 }
 
@@ -438,12 +451,12 @@ void Si4735::setVolume(byte volume) {
 byte Si4735::getVolume() {
 	char response [16];
 	byte volume;
-	
+
 	sprintf(command, "%c%c%c%c", 0x13, 0x00, 0x40, 0x00);
 	sendCommand(command, 4);
-	
+
 	getResponse(response);
-	
+
 	return response[3];
 }
 

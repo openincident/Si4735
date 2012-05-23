@@ -24,7 +24,7 @@
 
 //Define the SPI Pin Numbers
 #define DATAOUT 11		//MOSI
-#define DATAIN  12		//MISO 
+#define DATAIN  12		//MISO
 #define SPICLOCK  13	//sck
 #define SS 10	        //ss
 
@@ -33,6 +33,7 @@
 #define	FM	1
 #define SW	2
 #define	LW	3
+#define WB	4
 
 #define ON	true
 #define OFF	false
@@ -44,7 +45,7 @@ class Si4735:public SPIClass{
 		//This is just a constructor.
 		Si4735();
 		/*
-		* Description: 
+		* Description:
 		*	Initializes the Si4735, powers up the radio in the desired mode and limits the bandwidth appropriately.
 		* 	This function must be called before any other radio command.
 		*	The bands are set as follows:
@@ -57,7 +58,7 @@ class Si4735:public SPIClass{
 		*/
 		void begin(char mode);
 		/*
-		* Description: 
+		* Description:
 		*	Used to send an ascii command string to the radio.
 		* Parameters:
 		*	myCommand - A null terminated ascii string limited to hexidecimal characters
@@ -66,7 +67,7 @@ class Si4735:public SPIClass{
 		*/
 		void sendCommand(char * myCommand);
 		/*
-		* Description: 
+		* Description:
 		*	Used to to tune the radio to a desired frequency. The library uses the mode indicated in the
 		* 	begin() function to determine how to set the frequency.
 		* Parameters:
@@ -102,9 +103,9 @@ class Si4735:public SPIClass{
 		*	True
 		* TODO:
 		*	Make the function return true if a valid channel was found, else return false.
-		*/		
+		*/
 		bool seekDown(void);
-		
+
 		void readRDS(void);
 		void getRDS(char * ps, char * radiotext);
 		/*
@@ -117,7 +118,7 @@ class Si4735:public SPIClass{
 		*	Decreases the volume by 1. If the minimum volume has been reached, no decrease will take place.
 		*/
 		void volumeDown(void);
-		
+
 		void setVolume(byte volume);
 		byte getVolume();
 		/*
@@ -149,7 +150,7 @@ class Si4735:public SPIClass{
 		*	Powers down the radio
 		*/
 		void end(void);
-		
+
 	private:
 		char _disp[65]; // Radio Text
 		char _ps[9]; // Program service name
@@ -159,7 +160,7 @@ class Si4735:public SPIClass{
 		*/
 		char _mode;
 		/*
-		* A variable the keeps the current volume level. 
+		* A variable the keeps the current volume level.
 		*/
 		char _currentVolume;
 		/*
@@ -185,7 +186,7 @@ class Si4735:public SPIClass{
 		*	The character read from the SPI bus during the transfer.
 		*/
 		char spiTransfer(char value);
-		
+
 		void clearRDS(void);
 };
 

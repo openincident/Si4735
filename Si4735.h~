@@ -15,7 +15,7 @@
 
 //#include "WProgram.h"
 #include "Arduino.h"
-#include <SPI.h>
+#include "/usr/local/arduino-1.0/libraries/SPI/SPI.h"
 
 //Assign the radio pin numbers
 #define POWER_PIN	8
@@ -33,6 +33,7 @@
 #define	FM	1
 #define SW	2
 #define	LW	3
+#define WB	4
 
 #define ON	true
 #define OFF	false

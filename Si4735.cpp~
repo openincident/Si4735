@@ -7,6 +7,9 @@
  * Released under the 'Buy Me a Beer' license
  * (If we ever meet, you buy me a beer)
  *
+ * Utterly mutliated by Dan Zubey <dzubey@openincident.com>
+ * Bugs are now all mine.
+ * 
  * See the header file for better function documentation.
  *
  * See the example sketches to learn how to use the library in your code.
@@ -15,6 +18,8 @@
 #include "Si4735.h"
 #include "Arduino.h"
 #include "string.h"
+#include <Debug.h>  // dzubey
+#define DEBUG
 
 //This is just a constructor.
 Si4735::Si4735(){
@@ -65,7 +70,6 @@ void Si4735::begin(char mode){
 	//Configure the SPI hardware
 	SPIClass::begin();
 	SPIClass::setClockDivider(SPI_CLOCK_DIV32);
-	
 	//Send the POWER_UP command
 	switch(_mode){
 		case FM:
@@ -76,6 +80,9 @@ void Si4735::begin(char mode){
 		case LW:
 			sprintf(command, "%c%c%c", 0x01, 0x51, 0x05);
 			break;
+  		case WB:
+  		        sprintf(command, "%c%c%c", 0x01, 0x53, 0x05);
+  		        break;
 		default:
 			return;
 	}
@@ -83,14 +90,14 @@ void Si4735::begin(char mode){
 	delay(110); //WTF? don't just wait and go duh...waut for the response!
 
 	//Set the volume to the current value.
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
-	sendCommand(command, 6);
-	delay(10);
-
-	//Disable Mute
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
-	sendCommand(command, 6);
-	delay(1);
+// 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
+// 	sendCommand(command, 6);
+// 	delay(10);
+// 
+// 	//Disable Mute
+// 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
+// 	sendCommand(command, 6);
+// 	delay(10);
 
 	//Enable RDS
 //	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0x00, 0x01);
@@ -151,6 +158,8 @@ void Si4735::sendCommand(char * myCommand){
 *			False if tune was unsuccessful
 */
 bool Si4735::tuneFrequency(int frequency){
+		char response [16];
+
 	clearRDS();
 	
 	//Split the desired frequency into two character for use in the
@@ -173,12 +182,16 @@ bool Si4735::tuneFrequency(int frequency){
 		case SW:
 			sprintf(command, "%c%c%c%c%c%c", 0x40, 0x00, highByte, lowByte, 0x00, 0xff);
 			break;
+		case WB:
+			sprintf(command, "%c%c%c%c", 0x50, 0x00, highByte, lowByte);
+			break;
 		default:
 			break;
 	}
+	DEBUG_PRINT(command);
 	sendCommand(command, 4);
-	//getResponse(response);
-//	delay(50);
+	getResponse(response);
+	delay(50);
 	
 	return true;
 }
@@ -316,8 +329,8 @@ void Si4735::readRDS(void){
 	
 	// /*
 //	Serial.println("================================");
-	Serial.print("Program Type:|");
-	Serial.println(type, DEC);
+//	Serial.print("Program Type:|");
+//	Serial.println(type, DEC);
 //	Serial.println("|");
 //	Serial.print("Version:|");
 //	Serial.print(version, BIN);
@@ -415,7 +428,7 @@ void Si4735::volumeUp(void){
 		//Set the volume to the current value.
 		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
 		sendCommand(command, 6);
-		delay(10);		
+		delay(10);
 	}
 }
 
@@ -426,7 +439,7 @@ void Si4735::volumeDown(void){
 		//Set the volume to the current value.
 		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
 		sendCommand(command, 6);
-		delay(10);		
+		delay(10);
 	}
 }
 

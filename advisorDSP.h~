@@ -1,0 +1,7 @@
+float detectTone  (float Tone)
+  void DSPinit(float frequency)
+//   void initTimer(void)
+ISR(TIMER1_COMPA_vect)
+  void ResetGoertzel(void)
+  void InitGoertzel(void)
+  float GetMagnitudeSquared(void)
